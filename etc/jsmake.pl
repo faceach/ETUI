@@ -3,13 +3,13 @@ use 5.8.8;
 use warnings;
 use strict;
 use File::Basename;
-use File::Spec;
+use File::Spec::Unix;
 use Getopt::Long;
 use Cwd qw(realpath);
 sub say { print shift(),"\n"; }
 sub hr  { '-'x50; }
 
-our $VERSION = 1.3;
+our $VERSION = 1.7;
 ######COMMAND LINE##########
 
 #define default variables
@@ -20,29 +20,39 @@ my %commandlineconstants=();
 my $out        = '.';
 my $outname    = '';
 my $compress   = 'none';
-my $input     = '';#current directory
+my $input      = '';#current directory
+my $configfile = '';
+
 my %minifiers = (
     'JavaScript::Packer'  => 'packer',
     'JavaScript::Minifier'=> 'mini',
     'Javascript::Closure' => 'closure'
 );
 
-#get command line options
-GetOptions ('packages:s{,}' => \@packages,
-            'vars:s{,}'     => \@vars,
-            'define:s{,}'   => \%commandlineconstants,
-            'output=s'      => \$out,
-            'compression=s' => \$compress,
-            'input=s'       => \$input,
+my %__options__ =(
+	'packages:s{,}' => \@packages,
+    'vars:s{,}'     => \@vars,
+    'define:s{,}'   => \%commandlineconstants,
+    'output=s'      => \$out,
+    'compression=s' => \$compress,
+    'input=s'       => \$input
 );
+if(-e 'config.jsm') {
+	add_arguments(realpath('config.jsm'));
+}
+if(@ARGV > 0 && $ARGV[0] eq '-config') {
+	add_arguments(realpath($ARGV[1]));
+}
+
+
+#get command line options
+GetOptions (%__options__);
+
 
 my $packages    = (@packages) ? join ' ',@packages : 'all';
 
 #get preprocessor variables
-my $varLookup ={};
-foreach my $var (@vars) {
-    $varLookup->{$var}=1;
-}
+my $varLookup = { map { $_ => 1 } @vars };
 
 #check for the compression type
 my @compressions = check_available_compression();
@@ -55,7 +65,7 @@ if(@compressions==0) {
 my $reg = join ('|',values %minifiers);
 if($compress ne 'none' && !(grep /^$reg$/,$compress)){
     $compress = 'none';
-    say 'specified compression is not supported...';
+    say 'Specified compression is not supported...';
     if(@compressions>0){
         say 'Choose between: '.join(',',@compressions);
     }
@@ -75,43 +85,45 @@ say 'Output Folder   :'.$out;
 say 'Output File Name:'.$outname;
 say 'Packages        :'.$packages;
 say 'Compression type:'.$compress;
+my @variables        = keys %$varLookup;
+say 'Variables       :'.join(',',(keys %$varLookup));
 say hr;
 say hr;
 
 if(@packages>0){
-    say 'converting packages name to file path ...';
+    say 'Converting packages name to file path ...';
     map { 
         $_=package2path($_); 
     } @packages;
-    say "got: @packages";
+    say "Got: @packages";
 }
 
-say 'building dependency tree...';
+say 'Building dependency tree...';
 my ($hash,$output)= build_dependency_tree(\&load_dependency);
 
 $output = parse($output);
 
-say 'outputing the data...';
-my $outputfullpath=File::Spec->catfile($out,$outname);
+say 'Outputing the data...';
+my $outputfullpath=File::Spec::Unix->catfile($out,$outname);
 open (FILE,'>',$outputfullpath) || die "Error:$out";
 print FILE $output;
 close FILE;
-say 'the src dump is ready at '.$outputfullpath.' '. -s $outputfullpath;
+say 'The raw dump is ready at '.$outputfullpath.' '. -s $outputfullpath;
 
 if($compress ne 'none'){
-    say "starting $compress compression";
+    say "Starting $compress compression...";
     $outname=~s/\.js//;
     my $filename = "$outname-$compress.js";
-    $outputfullpath=File::Spec->catfile($out,$filename);
+    $outputfullpath=File::Spec::Unix->catfile($out,$filename);
     open FILE,'>',$outputfullpath || die $!;
     no strict 'refs';
     print FILE &$compress($output);
     use strict;
     close FILE;
-    say "the $compress dump is ready at $outputfullpath".' '. -s $outputfullpath;
+    say "The $compress compressed dump is ready at $outputfullpath".' '. -s $outputfullpath;
 }
 
-say "done.";
+say "Done.";
 
 exit;
 
@@ -137,6 +149,24 @@ sub closure {
     return Javascript::Closure::minify(input=>shift);
 }
 
+###COMMAND LINE###
+sub add_arguments {
+	my $configfile = shift;
+    open (FILE,'<',$configfile) || die 'Could not open:'.$configfile;
+    while(<FILE>){
+		chomp;
+		my ($key,$val) =split /:/;
+		if(my $var = $__options__{$key.':s{,}'}){
+			my @matches = split /\s+/,$val;
+			unshift @$var,@matches;
+		}
+		else {
+			unshift @ARGV, '-'.$key,$val;
+		}
+    }
+    close FILE;
+}
+
 ####DEPENDENCY TREE BUILDER####
 
 sub build_dependency_tree {
@@ -153,10 +183,11 @@ sub build_dependency_tree {
         $tree->{path2package($file)}= $ret if($ret);
 
     },sub {
+		use Data::Dumper;
+
         &$callback($tree);
     });
 }
-
 
 sub load_dependency {
     my ($tree,$loaded,$output) = @_;
@@ -164,6 +195,7 @@ sub load_dependency {
     $loaded = {} if(!$loaded);
     $output = '' if(!$output);
     my $lib = $input;
+
     while(my($package,$dependencies)=each %{$tree}){
 
         next if($loaded->{$package});
@@ -173,10 +205,12 @@ sub load_dependency {
             next if($loaded->{$dep} || $dep eq $package);
 
             if($tree->{$dep} && @{$tree->{$dep}}>0){
+				 die "cyclic interdependence found: $dep requires $package that requires $dep that requires..." if(grep(/^$package$/,@{$tree->{$dep}}));
                  ($loaded,$output) = load_dependency({"$dep"=>$tree->{$dep}},$loaded,$output);
             }
             else {
                 my $ret = get_package_dependencies($lib,$lib.package2path($dep),1);
+				die "cyclic interdependence found: $dep requires $package that requires $dep that requires..." if(grep(/^$package$/,@$ret));
                 if($ret){
                      ($loaded,$output) = load_dependency({"$dep"=>$ret},$loaded,$output);
                 }else {
@@ -198,11 +232,13 @@ sub load_dependency {
 sub get_package_dependencies {
         my @files=();
         my ($lib,$file,$force) = @_;
+
         $file=~s{$lib}{};
+
         return undef if($file=~m/$out$/ || $file=~m/-src/);
         return undef if(@packages>0 && !(grep /$file$/,@packages) && !$force);
 
-        open (FILE,'<',File::Spec->catfile($lib,$file)) || die File::Spec->catfile($lib,$file);
+        open (FILE,'<',File::Spec::Unix->catfile($lib,$file)) || die File::Spec::Unix->catfile($lib,$file);
         my @lines = <FILE>;
         close FILE;
 
@@ -220,7 +256,7 @@ sub get_package_dependencies {
 
 sub load_package {
     my $package = package2path(shift);
-    open(FILE,'<',File::Spec->catfile($input,$package)) || die "$!: $package\n";
+    open(FILE,'<',File::Spec::Unix->catfile($input,$package)) || die "$!: $package\n";
     my $lines =join '', <FILE>;
     close FILE;
     return  $lines."\n";
@@ -240,7 +276,7 @@ sub package2path {
 
 sub traverse {
     my ($dir,$callback,$complete) = @_;
-    my @docs =glob($dir.'/*');
+    my @docs =glob(File::Spec::Unix->catfile($dir,'*'));
 
     foreach my $doc (@docs){
         if(-f $doc) {
@@ -261,7 +297,7 @@ sub parse {
     my $js = shift;
 
     #conditional statements
-    $js=~s{(/\*[#@]([a-z]+?) ([A-Z_-]+) \*/(.*?)/\*[#@]end \*/)}{ token($4,$2,$3,$1); }gmoe;
+    $js=~s{(/\*[#@]([a-z]+?) ([A-Z_-]+) \*/(.*?)/\*[#@]end \*/)}{ token($4,$2,$3,$1); }gmsoe;
 
     $js=~s{function\s+\$_(.+?)\s*\(}{function(}gmo if($varLookup->{TRUE_ANON});
 
