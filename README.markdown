@@ -1,1 +1,0 @@
-**etui** literally means small ornamental ladies' bag for small articles and this is exactly what it does for englishtown front-end developers, it contains small tools that for decorating our website with ease and great reusability.
