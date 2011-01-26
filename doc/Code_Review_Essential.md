@@ -44,8 +44,13 @@
 	
 	For the other HTMLs that for decoration, the default value should be defined
 	in constructor.opts.tmpl and all CSSs go to /css/ folder.
+
+2. Correct dependency link, no circular reference or dependencies.
+	TBD more detailed instruction
+
+3. Function that is important to be loaded at the startup should not be placed under etui namespace, instead, they should under 'premier' namespace and should not depend on any function under etui namespace (norm Jan26 2011: what about jQuery should we load it at startup?). so the script that gets loaded in <head /> won't be too much and block the downloading thread of browser.
 	
-2. cross-browser compatibilies
+4. cross-browser compatibilies
 
 	1. iOS
 		* use translateY to fix 'position: fixed'.
