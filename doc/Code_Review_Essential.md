@@ -25,7 +25,7 @@
 	
 3. IE6 compatibilities
 	
-	For ie 6, below degradation is acceptable
+	For IE6, below degradations is acceptable
 	
 	1. No alpha transparecy on background (when using png8)
 	
