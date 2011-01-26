@@ -22,6 +22,8 @@
 	2. 'Position: fixed' need to get fixed. (use webkit transform!)
 	
 	3. UI that combined by sprites will has gap between edges.
+
+	4. Font-size generally has 2 pixel larger then the one on mac or pc.
 	
 3. IE6 compatibilities
 	
