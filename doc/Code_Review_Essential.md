@@ -91,7 +91,7 @@
             
             // however, what about it is not a primitive string but a String Object?
             if (new String('')) { console.log(1);}
-            
+        
         2. Comparing if a variable is undefined should always reference to etui.undef rather than
         the original undefined.
             
@@ -127,7 +127,10 @@
     
 5. Cross-browser compatibilies
 
-    1. iOS
+    1. Use feature detection rather than browser detection when there is a method available:
+    [[http://kangax.github.com/cft/]]
+
+    2. iOS
         * use translateY to fix 'position: fixed'.
         
 #Process
