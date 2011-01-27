@@ -35,7 +35,58 @@
 	
 #JavaScript
 
-1. Only functional CSS classes or HTMLs are allowed in JavaScript Code. Let's say:
+1. Coding style:
+	
+	* General
+	
+		1. Every statement ends with a semicolon ';', be careful when assign a function to a variable,
+		a semi colon is needed as well after the ending bracket '}', otherwise you may accidentally 
+		execute the function:
+		
+			var func = function $_func(){
+			
+				blahblah
+				
+				blah
+				
+				...
+				
+			}; <-- semicolon is important!
+			
+			// think if anyone wrote some code like this:
+			
+			var func = function $_func(){
+			
+				blahblah
+				
+				blah
+				
+				...
+				
+			}
+			
+			
+			(function($){
+			
+				$.blahblah
+				
+			})(jQuery);
+			
+			// what will happened when code was compressed?
+		
+		2. No global pollution, all variables go inside to a closure.
+		
+		
+	
+	* Comparing
+	
+		1. Use String.isNOE or String.isNOWS to check if a string Never use if (String) to 
+	
+	* DOM
+	
+		1. All DOM operation should be executed after DOM Ready except &lt;html /&gt;.
+
+2. Only functional CSS classes or HTMLs are allowed in JavaScript Code. Let's say:
 	
 	We are going to encapsulate the 'overlay' which display a masking alpha transparency
 	layer on the top of page, this encapsulation should do the trick that displays the 
@@ -47,16 +98,26 @@
 	For the other HTMLs that for decoration, the default value should be defined
 	in constructor.opts.tmpl and all CSSs go to /css/ folder.
 
-2. Correct dependencies, no circular references.
+3. Correct dependencies, no circular references.
 	-TBD- more detailed instruction
 
-3. Function that is important to be loaded at the startup should not be placed under etui namespace, instead, they should under 'premier' namespace and should not depend on any function under etui namespace (norm Jan26 2011: what about jQuery should we load it at startup?). so the script that gets loaded in &lt;head &gt; won't be too much and block the downloading thread of browser.
+4. Function that is important to be loaded at the startup should not be placed under etui namespace,
+	instead, they should under 'premier' namespace and should not depend on any function under etui 
+	namespace (norm Jan26 2011: what about jQuery should we load it at startup?). so the script that 
+	gets loaded in &lt;head /&gt; won't be too much and block the downloading thread of browser.
 	
-4. cross-browser compatibilies
+5. Cross-browser compatibilies
 
 	1. iOS
 		* use translateY to fix 'position: fixed'.
-	
-	
+		
+#Process
+
+	_Content in this section may or may not applicable for pure front-end etui development, most of 
+	them applys to Englishtown internal project check in process._
+
+1. Every JavaScript commitment should contains a compressed version by using jsmin, the compressed 
+	JavaScript file should be named in this format: [original name].min.js
+	JSMin can be downloaded here: [[http://www.crockford.com/javascript/jsmin.html]]
 	
 	
