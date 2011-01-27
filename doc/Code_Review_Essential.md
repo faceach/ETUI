@@ -81,7 +81,7 @@
     * Comparing
     
         1. Use String.isNOE or String.isNOWS to check if a string is null or empty or whitespace,
-        shall never use " if (String) {} "
+        shall never use ``if (String) {} ``
         
             // detect if a string is empty or null is convinient when using 'if'
             // below code will never write '1' to console if str = null or str = ''
@@ -103,7 +103,7 @@
     
     * DOM
     
-        1. All DOM operation should be executed after DOM Ready except &lt;html /&gt;.
+        1. All DOM operation should be executed after DOM Ready except `<html />`.
 
 2. Only functional CSS classes or HTMLs are allowed in JavaScript Code. Let's say:
     
@@ -123,7 +123,7 @@
 4. Function that is important to be loaded at the startup should not be placed under etui namespace,
     instead, they should under 'premier' namespace and should not depend on any function under etui 
     namespace (norm Jan26 2011: what about jQuery should we load it at startup?). so the script that 
-    gets loaded in &lt;head /&gt; won't be too much and block the downloading thread of browser.
+    gets loaded in `<head />` won't be too much and block the downloading thread of browser.
     
 5. Cross-browser compatibilies
 
