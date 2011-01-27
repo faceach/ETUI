@@ -80,7 +80,26 @@
 	
 	* Comparing
 	
-		1. Use String.isNOE or String.isNOWS to check if a string Never use if (String) to 
+		1. Use String.isNOE or String.isNOWS to check if a string is null or empty or whitespace,
+		shall never use " if (String) {} "
+		
+			// detect if a string is empty or null is convinient when using 'if'
+			// below code will never write '1' to console if str = null or str = ''
+			
+			str = ''
+			if (str) { console.log(1); }
+			
+			// however, what about it is not a primitive string but a String Object?
+			if (new String('')) { console.log(1);}
+			
+		2. Comparing if a variable is undefined should always reference to etui.undef rather than
+			the original undefined.
+			
+			if (a === undefined ) { ... } // bad, people can over write undefined as it is not a keyword
+			
+			if (a === etui.undef ) { ... } // good, at least
+			
+			if (!etui.notdef(a)) { ... } // best
 	
 	* DOM
 	
