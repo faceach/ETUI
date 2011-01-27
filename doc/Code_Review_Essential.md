@@ -91,7 +91,7 @@
             
             // however, what about it is not a primitive string but a String Object?
             if (new String('')) { console.log(1);}
-        
+
         2. Comparing if a variable is undefined should always reference to etui.undef rather than
         the original undefined.
             
