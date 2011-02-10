@@ -21,9 +21,9 @@
     
     2. 'Position: fixed' need to get fixed. (use webkit transform!)
     
-    3. UI that combined by sprites will has gap between edges.
+    3. UI elements that combined by sprites will has gap between edges.
 
-    4. Font-size generally has 2 pixel larger then the one on mac or pc.
+    4. Be careful font-size generally has 2 pixel larger then the one on mac or pc.
     
 3. IE6 compatibilities
     
@@ -43,40 +43,50 @@
         a semi colon is needed as well after the ending bracket '}', otherwise you may accidentally 
         execute the function:
         
-            var func = function $_func(){
+        var func = function $_func(){
+        
+            blahblah
             
-                blahblah
-                
-                blah
-                
-                ...
-                
-            }; <-- semicolon is important!
+            blah
             
-            // think if anyone wrote some code like this:
+            ...
             
-            var func = function $_func(){
+        }; <-- semicolon is important!
+        
+        // think if anyone wrote some code like this:
+        
+        var func = function $_func(){
+        
+            blahblah
             
-                blahblah
-                
-                blah
-                
-                ...
-                
-            }
+            blah
             
+            ...
             
-            (function($){
+        }
+        
+        
+        (function($){
+        
+            $.blahblah
             
-                $.blahblah
-                
-            })(jQuery);
-            
-            // what will happened when code was compressed?
+        })(jQuery);
+        
+        // what will happened when code was compressed?
         
         2. No global pollution, all variables go inside to a closure.
         
+    * Naming Style
+    
+        1. lowerCamelCase
         
+        2. UPPER_CASE_FOR_CONSTANTS
+        
+        3. _underlineBeforeVirtual
+        
+        4. Recommand to use ''var prvt = {}'' in your closure to holds all private methods.
+        
+        5. Small **simple** words for namespaces.
     
     * Comparing
     
@@ -103,7 +113,7 @@
     
     * DOM
     
-        1. All DOM operation should be executed after DOM Ready except `<html />`.
+        1. All DOM operation (except operatoin on `<html />`) should be executed when/after DOM Ready.
 
 2. Only functional CSS classes or HTMLs are allowed in JavaScript Code. Let's say:
     
@@ -131,12 +141,14 @@
     [[http://kangax.github.com/cft/]]
 
     2. iOS
-        * use translateY to fix 'position: fixed'.
+        * Any `fixed` css property will not work on iOS browser, so think carefully and make sure the
+        function won't broken on iOS, (one popular solution is to set translateY rather than top when
+        onScroll).
         
 #Process
 
-    _Content in this section may or may not applicable for pure front-end etui development, most of 
-    them applys to Englishtown internal project check in process._
+__Content in this section may or may not applicable for pure front-end etui development, most of 
+them applys to Englishtown internal project check in process.__
 
 1. Every JavaScript commitment should contains a compressed version by using jsmin, the compressed 
     JavaScript file should be named in this format: [original name].min.js
