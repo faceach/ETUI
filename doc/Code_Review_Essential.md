@@ -43,36 +43,36 @@
         a semi colon is needed as well after the ending bracket '}', otherwise you may accidentally 
         execute the function:
         
-        var func = function $_func(){
-        
-            blahblah
+            var func = function $_func(){
+
+                blahblah
+                
+                blah
+                
+                ...
+                
+            }; <-- semicolon is important!
             
-            blah
+            // think if anyone wrote some code like this:
             
-            ...
+            var func = function $_func(){
             
-        }; <-- semicolon is important!
-        
-        // think if anyone wrote some code like this:
-        
-        var func = function $_func(){
-        
-            blahblah
+                blahblah
+                
+                blah
+                
+                ...
+                
+            }
             
-            blah
             
-            ...
+            (function($){
             
-        }
-        
-        
-        (function($){
-        
-            $.blahblah
+                $.blahblah
+                
+            })(jQuery);
             
-        })(jQuery);
-        
-        // what will happened when code was compressed?
+        what will happened when code was compressed?
         
         2. No global pollution, all variables go inside to a closure.
         
