@@ -2,14 +2,18 @@
 use 5.8.8;
 use warnings;
 use strict;
+
 use File::Basename;
+use File::Spec;
 use File::Spec::Unix;
 use Getopt::Long;
-use Cwd qw(realpath);
+use Cwd qw(realpath getcwd);
+
 sub say { print shift(),"\n"; }
 sub hr  { '-'x50; }
+sub display { say sprintf("%-17s",shift).': '.shift; }
 
-our $VERSION = 1.7;
+our $VERSION = 1.8;
 ######COMMAND LINE##########
 
 #define default variables
@@ -37,10 +41,12 @@ my %__options__ =(
     'compression=s' => \$compress,
     'input=s'       => \$input
 );
-if(-e 'config.jsm') {
-	add_arguments(realpath('config.jsm'));
-}
-if(@ARGV > 0 && $ARGV[0] eq '-config') {
+
+
+add_arguments(realpath('config.jsm')) if -e 'config.jsm';
+my $is_relative;
+if(@ARGV > 0 && $ARGV[0] eq '-config'){
+	$is_relative=$ARGV[1];
 	add_arguments(realpath($ARGV[1]));
 }
 
@@ -71,24 +77,46 @@ if($compress ne 'none' && !(grep /^$reg$/,$compress)){
     }
 }
 
-$input             = realpath($input);
+#input/output relative to config.jsm path
+
+my $cwd =getcwd();
+$is_relative||=$cwd;#config file set via cli contains the file name
+
+my $abs_conf_path = File::Spec->rel2abs( $is_relative,getcwd() );
+
+							
+my $path_base      = $is_relative eq $cwd 
+					 ? $cwd 
+					   #get just the directory tree, no filename
+				     : (fileparse($abs_conf_path))[1];
+
+$input             = File::Spec->rel2abs( $input,$path_base);
 ($outname,$out)    = fileparse($out);
-$out               = realpath($out);
+$out               = File::Spec->rel2abs($out,$path_base);
 if(length($outname)==0 || $outname!~m/\.js$/){
     $outname='output.js';
 }
 
 say hr;
 say hr;
-say 'Input Folder    :'.$input;
-say 'Output Folder   :'.$out;
-say 'Output File Name:'.$outname;
-say 'Packages        :'.$packages;
-say 'Compression type:'.$compress;
+
+display 'Input Folder',$input;
+display 'Output Folder',$out;
+display 'Output File Name',$outname;
+display 'Packages',$packages;
+display 'Compression type',$compress;
 my @variables        = keys %$varLookup;
-say 'Variables       :'.join(',',(keys %$varLookup));
+display 'Variables',join(',',(keys %$varLookup));
+
+my @defines;
+while(my ($k,$v)= each %commandlineconstants){ 
+	push @defines,$k.'='.$v  
+}
+display 'Define',join(' ',@defines);
+
 say hr;
 say hr;
+
 
 if(@packages>0){
     say 'Converting packages name to file path ...';
@@ -108,7 +136,7 @@ my $outputfullpath=File::Spec::Unix->catfile($out,$outname);
 open (FILE,'>',$outputfullpath) || die "Error:$out";
 print FILE $output;
 close FILE;
-say 'The raw dump is ready at '.$outputfullpath.' '. -s $outputfullpath;
+say 'The raw dump is ready at '.$outputfullpath.' '. human_readable_fsize(-s $outputfullpath);
 
 if($compress ne 'none'){
     say "Starting $compress compression...";
@@ -120,7 +148,7 @@ if($compress ne 'none'){
     print FILE &$compress($output);
     use strict;
     close FILE;
-    say "The $compress compressed dump is ready at $outputfullpath".' '. -s $outputfullpath;
+    say "The $compress compressed dump is ready at $outputfullpath".' '. human_readable_fsize(-s $outputfullpath);
 }
 
 say "Done.";
@@ -154,11 +182,16 @@ sub add_arguments {
 	my $configfile = shift;
     open (FILE,'<',$configfile) || die 'Could not open:'.$configfile;
     while(<FILE>){
-		chomp;
-		my ($key,$val) =split /:/;
+
+ 		s/\015?\012//;#good bye chomp...
+
+		my ($key,$val) =split /\s*:\s*/;
+
 		if(my $var = $__options__{$key.':s{,}'}){
-			my @matches = split /\s+/,$val;
-			unshift @$var,@matches;
+
+			unshift @$var,split /\s+/,$val if ref $var eq 'ARRAY';
+
+			map { %$var= (%$var,split(/=/,$_)) } (split /\s+/,$val) if ref $var eq 'HASH';
 		}
 		else {
 			unshift @ARGV, '-'.$key,$val;
@@ -177,14 +210,12 @@ sub build_dependency_tree {
     traverse($lib,sub {
 
         my $file = shift;
-        $file=~s{$lib}{};
+        $file=~s{\Q$lib\E}{};
 
         my $ret = get_package_dependencies($lib,$file);
         $tree->{path2package($file)}= $ret if($ret);
 
     },sub {
-		use Data::Dumper;
-
         &$callback($tree);
     });
 }
@@ -233,10 +264,10 @@ sub get_package_dependencies {
         my @files=();
         my ($lib,$file,$force) = @_;
 
-        $file=~s{$lib}{};
+        $file=~s{\Q$lib\E}{};
 
-        return undef if($file=~m/$out$/ || $file=~m/-src/);
-        return undef if(@packages>0 && !(grep /$file$/,@packages) && !$force);
+        return undef if($file=~m/\Q$out\E$/ || $file=~m/-src/);
+        return undef if(@packages>0 && !(grep /\Q$file\E$/,@packages) && !$force);
 
         open (FILE,'<',File::Spec::Unix->catfile($lib,$file)) || die File::Spec::Unix->catfile($lib,$file);
         my @lines = <FILE>;
@@ -352,4 +383,21 @@ sub ifndef_handler {
         return "";
     }
     return $strippedcomment;
+}
+
+###HELPER####
+
+sub human_readable_fsize {
+   my $size = shift;
+
+   return sprintf("%.2ftb", $size / 1099511627776) if  $size > 1099511627776;
+
+   return sprintf("%.2fgb", $size / 1073741824) if $size > 1073741824;
+
+   return sprintf("%.2fmb", $size / 1048576) if $size > 1048576;
+
+   return sprintf("%.2fkb", $size / 1024) if $size > 1024;
+
+   return sprintf("%.2fb", $size);
+
 }
